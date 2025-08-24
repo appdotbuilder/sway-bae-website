@@ -1,18 +1,54 @@
+import { db } from '../db';
+import { socialMediaTable } from '../db/schema';
 import { type UpdateSocialMediaInput, type SocialMedia } from '../schema';
+import { eq } from 'drizzle-orm';
 
-export async function updateSocialMedia(input: UpdateSocialMediaInput): Promise<SocialMedia> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is updating an existing social media link in the database.
-    // Should automatically update the updated_at timestamp and validate the ID exists.
-    return Promise.resolve({
-        id: input.id,
-        platform: input.platform || 'placeholder',
-        username: input.username || 'placeholder',
-        url: input.url || 'https://example.com',
-        icon_url: input.icon_url !== undefined ? input.icon_url : null,
-        is_active: input.is_active ?? true,
-        display_order: input.display_order ?? 0,
-        created_at: new Date(),
-        updated_at: new Date()
-    } as SocialMedia);
-}
+export const updateSocialMedia = async (input: UpdateSocialMediaInput): Promise<SocialMedia> => {
+  try {
+    // Check if the social media record exists
+    const existing = await db.select()
+      .from(socialMediaTable)
+      .where(eq(socialMediaTable.id, input.id))
+      .execute();
+
+    if (existing.length === 0) {
+      throw new Error(`Social media record with ID ${input.id} not found`);
+    }
+
+    // Build update object with only provided fields
+    const updateData: Partial<typeof socialMediaTable.$inferInsert> = {
+      updated_at: new Date()
+    };
+
+    if (input.platform !== undefined) {
+      updateData.platform = input.platform;
+    }
+    if (input.username !== undefined) {
+      updateData.username = input.username;
+    }
+    if (input.url !== undefined) {
+      updateData.url = input.url;
+    }
+    if (input.icon_url !== undefined) {
+      updateData.icon_url = input.icon_url;
+    }
+    if (input.is_active !== undefined) {
+      updateData.is_active = input.is_active;
+    }
+    if (input.display_order !== undefined) {
+      updateData.display_order = input.display_order;
+    }
+
+    // Update the record
+    const result = await db.update(socialMediaTable)
+      .set(updateData)
+      .where(eq(socialMediaTable.id, input.id))
+      .returning()
+      .execute();
+
+    return result[0];
+  } catch (error) {
+    console.error('Social media update failed:', error);
+    throw error;
+  }
+};

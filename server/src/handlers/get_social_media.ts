@@ -1,8 +1,20 @@
+import { db } from '../db';
+import { socialMediaTable } from '../db/schema';
 import { type SocialMedia } from '../schema';
+import { eq, asc } from 'drizzle-orm';
 
-export async function getSocialMedia(): Promise<SocialMedia[]> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is fetching all active social media links from the database,
-    // ordered by display_order for proper rendering on the Socials section.
-    return [];
-}
+export const getSocialMedia = async (): Promise<SocialMedia[]> => {
+  try {
+    // Fetch all active social media links ordered by display_order
+    const results = await db.select()
+      .from(socialMediaTable)
+      .where(eq(socialMediaTable.is_active, true))
+      .orderBy(asc(socialMediaTable.display_order))
+      .execute();
+
+    return results;
+  } catch (error) {
+    console.error('Failed to fetch social media links:', error);
+    throw error;
+  }
+};
